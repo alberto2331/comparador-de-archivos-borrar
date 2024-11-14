@@ -1,0 +1,112 @@
+CREATE OR ALTER PROCEDURE [dbo].[SP_GetOracleReportGrouping] 
+(
+	@GroupingCol1 NVARCHAR(100),
+	@GroupingCol2 NVARCHAR(100),
+	@GroupingCol3 NVARCHAR(100),
+	@TenantIds NVARCHAR(255),
+	@FiscalYearTypeId INT,
+	@BudgetCycleTypeId INT,
+	@YearDateFrom INT,
+    @YearDateTo INT,
+    @MonthDateFrom INT,
+    @MonthDateTo INT,
+	@PartnerIds NVARCHAR(255),    
+	@CustomerIds NVARCHAR(255),    
+    @EGIds NVARCHAR(255),  
+    @ManagerIds NVARCHAR(255),  
+	@CurrencyIds NVARCHAR(255),    
+	@LosTypeIds NVARCHAR(255),
+	@IndustryIds NVARCHAR(255), 
+	@OfficeIds NVARCHAR(255),
+    @CostCenterIds NVARCHAR(255),  
+	@ProjectCode NVARCHAR(100),
+	@IsPricing BIT,
+	@CurrencyTypeSelector INT,
+	@ActiveUserId INT,
+    @CanViewUnrelatedForms BIT
+)
+AS
+BEGIN
+DECLARE @sql NVARCHAR(MAX);
+SET @sql = 'SELECT ' + QUOTENAME(@GroupingCol1) + ' AS GroupingCol1,' +
+	CASE WHEN @GroupingCol2 IS NULL THEN 'null' ELSE QUOTENAME(@GroupingCol2) END + ' AS GroupingCol2, ' +
+	CASE WHEN @GroupingCol3 IS NULL THEN 'null' ELSE QUOTENAME(@GroupingCol3) END + ' AS GroupingCol3, ' +
+	'null as TenantName,
+	null as FormId,
+	null as FormName,
+	null as ProjectNumber,
+	null as OpportunityLineId,
+	null as OpportunityLineCode,
+	null as IntegrationId,
+	null as CustomerDescription,
+	null as EconomicGroupDescription,
+	null as ManagerName,
+	null as PartnerName,
+	null as LosDescription,
+	null as SubLosDescription,
+	null as OfficeDescription,
+	null as CostCenterDescription,
+	null as FiscalYearDescription,
+	null as BudgetCycleDescription,
+	OriginCurrencyCode,
+	ReportCurrencyCode,
+	SUM(TotalHoursPPT) as TotalHoursPPT,
+	SUM(TotalHoursOracle) as TotalHoursOracle,
+	SUM(HoursITCOracle) as HoursITCOracle,
+	dbo.GetAdvance(SUM(TotalHoursOracle) + SUM(HoursITCOracle), SUM(TotalHoursPPT)) as TotalHoursAdvance,
+	SUM(TotalHoursAdditional) as TotalHoursAdditional,
+	SUM(MarketValuePPT) as MarketValuePPT,
+	SUM(MarketValueOracle) as MarketValueOracle,
+    dbo.GetAdvance(SUM(MarketValueOracle), SUM(MarketValuePPT)) as MarketValueAdvance,
+	SUM(MarketValueAdditional) as MarketValueAdditional,
+	SUM(HoursCostPPT) as HoursCostPPT,
+	SUM(HoursCostOracle) as HoursCostOracle,
+	dbo.GetAdvance(SUM(HoursCostOracle), SUM(HoursCostPPT)) as HoursCostAdvance,
+	SUM(HoursCostAdditional) as HoursCostAdditional,
+	dbo.GetDiscountPercentage(SUM(TimeRevenuePPT), SUM(MarketValuePPT)) as DiscountPercentagePPT,
+	dbo.GetDiscountPercentage(SUM(TimeRevenueOracle), SUM(MarketValueOracle)) as DiscountPercentageOracle,
+	SUM(BillingOracle) as BillingOracle,
+	SUM(TimeRevenuePPT) as TimeRevenuePPT,
+	SUM(TimeRevenueOracle) as TimeRevenueOracle,
+	dbo.GetAdvance(SUM(TimeRevenueOracle), SUM(TimeRevenuePPT)) as TimeRevenueAdvance,
+	SUM(TimeRevenueAdditional) as TimeRevenueAdditional,
+	SUM(NetRevenuePPT) as NetRevenuePPT,
+	SUM(NetRevenueOracle) as NetRevenueOracle,
+	dbo.GetAdvance(SUM(NetRevenueOracle), SUM(NetRevenuePPT)) as NetRevenueAdvance,
+	SUM(NetRevenueAdditional) as NetRevenueAdditional,
+	SUM(EMPPT) as EMPPT,
+	SUM(EMOracle) as EMOracle,
+	dbo.GetAdvance(SUM(EMOracle), SUM(EMPPT)) as EMAdvance,
+	SUM(EMAdditional) as EMAdditional,
+	dbo.GetEMPercentage(SUM(EMPPT), SUM(NetRevenuePPT)) as EMPercentagePPT,
+	dbo.GetEMPercentage(SUM(EMOracle), SUM(NetRevenueOracle)) as EMPercentageOracle
+	FROM [dbo].[GetOppLineIndicators] ('+
+	CASE WHEN @TenantIds is null then 'null' else '''' + @TenantIds + '''' END + ',' +
+	CASE WHEN @FiscalYearTypeId is null then 'null' else CONVERT(NVARCHAR(50), @FiscalYearTypeId) END + ',' +
+	CASE WHEN @BudgetCycleTypeId is null then 'null' else CONVERT(NVARCHAR(50), @BudgetCycleTypeId) END + ',' +
+    CONVERT(NVARCHAR(10), @YearDateFrom) + ',' +
+    CONVERT(NVARCHAR(10), @YearDateTo) + ',' +
+    CONVERT(NVARCHAR(10), @MonthDateFrom) + ',' +
+    CONVERT(NVARCHAR(10), @MonthDateTo) + ',' +
+	CASE WHEN @PartnerIds is null then 'null' else '''' + @PartnerIds + '''' END + ',' +
+	CASE WHEN @CustomerIds is null then 'null' else '''' + @CustomerIds + '''' END + ',' +
+	CASE WHEN @EGIds is null then 'null' else '''' + @EGIds + '''' END + ',' +
+	CASE WHEN @ManagerIds is null then 'null' else '''' + @ManagerIds + '''' END + ',' +
+	CASE WHEN @CurrencyIds is null then 'null' else '''' + @CurrencyIds + '''' END + ',' +
+	CASE WHEN @LosTypeIds is null then 'null' else '''' + @LosTypeIds + '''' END + ',' +
+	CASE WHEN @IndustryIds is null then 'null' else '''' + @IndustryIds + '''' END + ',' +
+	CASE WHEN @OfficeIds is null then 'null' else '''' + @OfficeIds + '''' END + ',' +
+	CASE WHEN @CostCenterIds is null then 'null' else '''' + @CostCenterIds + '''' END + ',' +
+	CASE WHEN  @ProjectCode is null then 'null' else '''' +  @ProjectCode  + '''' END + ',' +
+    CONVERT(NVARCHAR(1), @IsPricing) + ',' + 
+	CONVERT(NVARCHAR(1), @CurrencyTypeSelector) + ',' + 
+	CONVERT(NVARCHAR(50), @ActiveUserId) + ',' + 
+	CONVERT(NVARCHAR(1), @CanViewUnrelatedForms) +  
+	') GROUP BY OriginCurrencyCode, ReportCurrencyCode, ' + 
+	QUOTENAME(@GroupingCol1) +
+	CASE WHEN @GroupingCol2 IS NOT NULL THEN ', ' + QUOTENAME(@GroupingCol2) ELSE '' END +
+	CASE WHEN @GroupingCol3 IS NOT NULL THEN ', ' + QUOTENAME(@GroupingCol3) ELSE '' END
+--PRINT @sql;
+EXEC sp_executesql @sql;
+END;
+GO
